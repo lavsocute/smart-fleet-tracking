@@ -1,0 +1,585 @@
+{
+    "annotations": {
+        "list": [
+            {
+                "builtIn": 1,
+                "datasource": {
+                    "type": "grafana",
+                    "uid": "-- Grafana --"
+                },
+                "enable": true,
+                "hide": true,
+                "iconColor": "rgba(0, 211, 255, 1)",
+                "name": "Annotations & Alerts",
+                "type": "dashboard"
+            }
+        ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 1,
+    "id": null,
+    "links": [],
+    "panels": [
+        {
+            "title": "Active Vehicles",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 6,
+                "x": 0,
+                "y": 0
+            },
+            "datasource": {
+                "type": "postgres",
+                "uid": "DS_TIMESCALEDB"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 1
+                            },
+                            {
+                                "color": "green",
+                                "value": 3
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "targets": [
+                {
+                    "rawSql": "SELECT COUNT(DISTINCT vehicle_id) AS \"Active Vehicles\" FROM vehicle_telemetry WHERE ts > NOW() - INTERVAL '5 minutes';",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "title": "Total Telemetry Points (Last Hour)",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 6,
+                "x": 6,
+                "y": 0
+            },
+            "datasource": {
+                "type": "postgres",
+                "uid": "DS_TIMESCALEDB"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "blue",
+                                "value": null
+                            },
+                            {
+                                "color": "green",
+                                "value": 100
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "targets": [
+                {
+                    "rawSql": "SELECT COUNT(*) AS \"Total Points\" FROM vehicle_telemetry WHERE ts > NOW() - INTERVAL '1 hour';",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "title": "Active Alerts",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 6,
+                "x": 12,
+                "y": 0
+            },
+            "datasource": {
+                "type": "postgres",
+                "uid": "DS_TIMESCALEDB"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "orange",
+                                "value": 1
+                            },
+                            {
+                                "color": "red",
+                                "value": 5
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "targets": [
+                {
+                    "rawSql": "SELECT COUNT(*) AS \"Active Alerts\" FROM alerts WHERE is_resolved = false;",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "title": "🏎️ Max Speed (Last 5 min)",
+            "type": "gauge",
+            "gridPos": {
+                "h": 4,
+                "w": 6,
+                "x": 18,
+                "y": 0
+            },
+            "datasource": {
+                "type": "postgres",
+                "uid": "DS_TIMESCALEDB"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "max": 150,
+                    "min": 0,
+                    "unit": "velocitykmh",
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 60
+                            },
+                            {
+                                "color": "orange",
+                                "value": 80
+                            },
+                            {
+                                "color": "red",
+                                "value": 120
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "targets": [
+                {
+                    "rawSql": "SELECT COALESCE(MAX(speed), 0) AS \"Max Speed\" FROM vehicle_telemetry WHERE ts > NOW() - INTERVAL '5 minutes';",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "title": "📈 Average Speed per Vehicle (5-min buckets)",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 24,
+                "x": 0,
+                "y": 4
+            },
+            "datasource": {
+                "type": "postgres",
+                "uid": "DS_TIMESCALEDB"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "unit": "velocitykmh",
+                    "custom": {
+                        "lineWidth": 2,
+                        "fillOpacity": 10,
+                        "pointSize": 5,
+                        "spanNulls": true
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "tooltip": {
+                    "mode": "multi"
+                },
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "right"
+                }
+            },
+            "targets": [
+                {
+                    "rawSql": "SELECT time_bucket('5 minutes', ts) AS time, v.plate_number AS metric, ROUND(AVG(vt.speed)::numeric, 1) AS value FROM vehicle_telemetry vt JOIN vehicles v ON v.id = vt.vehicle_id WHERE $__timeFilter(ts) GROUP BY time, v.plate_number ORDER BY time;",
+                    "format": "time_series",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "title": "🗺️ Latest Vehicle Positions",
+            "type": "table",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 12
+            },
+            "datasource": {
+                "type": "postgres",
+                "uid": "DS_TIMESCALEDB"
+            },
+            "fieldConfig": {
+                "defaults": {},
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Speed"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "velocitykmh"
+                            },
+                            {
+                                "id": "thresholds",
+                                "value": {
+                                    "mode": "absolute",
+                                    "steps": [
+                                        {
+                                            "color": "green",
+                                            "value": null
+                                        },
+                                        {
+                                            "color": "orange",
+                                            "value": 80
+                                        },
+                                        {
+                                            "color": "red",
+                                            "value": 120
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "id": "custom.displayMode",
+                                "value": "color-background"
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Engine"
+                        },
+                        "properties": [
+                            {
+                                "id": "mappings",
+                                "value": [
+                                    {
+                                        "type": "value",
+                                        "options": {
+                                            "true": {
+                                                "text": "ON"
+                                            },
+                                            "false": {
+                                                "text": "OFF"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "targets": [
+                {
+                    "rawSql": "SELECT DISTINCT ON (vt.vehicle_id) v.plate_number AS \"Plate\", v.vehicle_type AS \"Type\", ROUND(vt.latitude::numeric, 4) AS \"Lat\", ROUND(vt.longitude::numeric, 4) AS \"Lng\", ROUND(vt.speed::numeric, 1) AS \"Speed\", vt.engine_status AS \"Engine\", vt.ts AS \"Last Seen\" FROM vehicle_telemetry vt JOIN vehicles v ON v.id = vt.vehicle_id ORDER BY vt.vehicle_id, vt.ts DESC;",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "title": "Recent Alerts",
+            "type": "table",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 12
+            },
+            "datasource": {
+                "type": "postgres",
+                "uid": "DS_TIMESCALEDB"
+            },
+            "fieldConfig": {
+                "defaults": {},
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Severity"
+                        },
+                        "properties": [
+                            {
+                                "id": "mappings",
+                                "value": [
+                                    {
+                                        "type": "value",
+                                        "options": {
+                                            "CRITICAL": {
+                                                "text": "CRITICAL",
+                                                "color": "red"
+                                            },
+                                            "HIGH": {
+                                                "text": "🟠 HIGH",
+                                                "color": "orange"
+                                            },
+                                            "MEDIUM": {
+                                                "text": "🟡 MEDIUM",
+                                                "color": "yellow"
+                                            },
+                                            "LOW": {
+                                                "text": "LOW",
+                                                "color": "green"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "targets": [
+                {
+                    "rawSql": "SELECT a.triggered_at AS \"Time\", v.plate_number AS \"Vehicle\", a.alert_type AS \"Type\", a.severity AS \"Severity\", a.message AS \"Message\", CASE WHEN a.is_resolved THEN 'YES' ELSE 'NO' END AS \"Resolved\" FROM alerts a JOIN vehicles v ON v.id = a.vehicle_id ORDER BY a.triggered_at DESC LIMIT 20;",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "title": "Hourly Speed Stats (Continuous Aggregate)",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 24,
+                "x": 0,
+                "y": 20
+            },
+            "datasource": {
+                "type": "postgres",
+                "uid": "DS_TIMESCALEDB"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "unit": "velocitykmh",
+                    "custom": {
+                        "lineWidth": 2,
+                        "fillOpacity": 15
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "tooltip": {
+                    "mode": "multi"
+                },
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "bottom"
+                }
+            },
+            "targets": [
+                {
+                    "rawSql": "SELECT bucket AS time, CONCAT('Vehicle #', vehicle_id, ' avg') AS metric, ROUND(avg_speed::numeric, 1) AS value FROM vehicle_speed_hourly WHERE $__timeFilter(bucket) ORDER BY bucket;",
+                    "format": "time_series",
+                    "refId": "A"
+                },
+                {
+                    "rawSql": "SELECT bucket AS time, CONCAT('Vehicle #', vehicle_id, ' max') AS metric, ROUND(max_speed::numeric, 1) AS value FROM vehicle_speed_hourly WHERE $__timeFilter(bucket) ORDER BY bucket;",
+                    "format": "time_series",
+                    "refId": "B"
+                }
+            ]
+        },
+        {
+            "title": "Daily Vehicle Summary",
+            "type": "table",
+            "gridPos": {
+                "h": 8,
+                "w": 18,
+                "x": 0,
+                "y": 28
+            },
+            "datasource": {
+                "type": "postgres",
+                "uid": "DS_TIMESCALEDB"
+            },
+            "fieldConfig": {
+                "defaults": {},
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Distance (km)"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "km"
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Max Speed"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "velocitykmh"
+                            },
+                            {
+                                "id": "thresholds",
+                                "value": {
+                                    "mode": "absolute",
+                                    "steps": [
+                                        {
+                                            "color": "green",
+                                            "value": null
+                                        },
+                                        {
+                                            "color": "orange",
+                                            "value": 80
+                                        },
+                                        {
+                                            "color": "red",
+                                            "value": 120
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "id": "custom.displayMode",
+                                "value": "color-background"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "targets": [
+                {
+                    "rawSql": "SELECT v.plate_number AS \"Vehicle\", d.summary_date AS \"Date\", d.total_distance_km AS \"Distance (km)\", d.avg_speed AS \"Avg Speed\", d.max_speed AS \"Max Speed\", d.total_points AS \"Points\", d.speeding_violations AS \"Speeding\", d.critical_violations AS \"Critical\", d.total_driving_minutes AS \"Driving (min)\" FROM daily_vehicle_summary d JOIN vehicles v ON v.id = d.vehicle_id ORDER BY d.summary_date DESC, v.plate_number LIMIT 50;",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        },
+        {
+            "title": "Data Quality — Rejected Records",
+            "type": "stat",
+            "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 18,
+                "y": 28
+            },
+            "datasource": {
+                "type": "postgres",
+                "uid": "DS_TIMESCALEDB"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 1
+                            },
+                            {
+                                "color": "red",
+                                "value": 10
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "targets": [
+                {
+                    "rawSql": "SELECT COUNT(*) AS \"Rejected Records\" FROM data_quality_rejected WHERE rejected_at > NOW() - INTERVAL '1 hour';",
+                    "format": "table",
+                    "refId": "A"
+                }
+            ]
+        }
+    ],
+    "refresh": "5s",
+    "schemaVersion": 39,
+    "tags": [
+        "fleet",
+        "tracking",
+        "timescaledb"
+    ],
+    "templating": {
+        "list": []
+    },
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "Asia/Ho_Chi_Minh",
+    "title": "Fleet Tracking Overview",
+    "uid": "fleet-overview",
+    "version": 1
+}

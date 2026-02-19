@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # --- PostgreSQL + TimescaleDB ---
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: fleet-timescaledb
+    environment:
+      POSTGRES_USER: ${DB_USER:-fleet_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-fleet_pass}
+      POSTGRES_DB: ${DB_NAME:-fleet_tracking}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U fleet_user -d fleet_tracking" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fleet-network
+
+  # --- RabbitMQ ---
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: fleet-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-fleet_user}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-fleet_pass}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fleet-network
+
+  # --- NestJS Backend ---
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fleet-backend
+    environment:
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-fleet_user}
+      DB_PASSWORD: ${DB_PASSWORD:-fleet_pass}
+      DB_NAME: ${DB_NAME:-fleet_tracking}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-fleet_user}:${RABBITMQ_PASSWORD:-fleet_pass}@rabbitmq:5672
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run start:dev
+    networks:
+      - fleet-network
+
+  # --- Grafana Dashboard ---
+  grafana:
+    image: grafana/grafana:latest
+    container_name: fleet-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/fleet-overview.json
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    networks:
+      - fleet-network
+
+volumes:
+  timescaledb_data:
+  rabbitmq_data:
+  grafana_data:
+
+
+networks:
+  fleet-network:
+    driver: bridge

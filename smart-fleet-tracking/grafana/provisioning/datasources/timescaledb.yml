@@ -1,0 +1,23 @@
+apiVersion: 1
+
+datasources:
+  - name: TimescaleDB
+    uid: DS_TIMESCALEDB
+    type: postgres
+    access: proxy
+    url: timescaledb:5432
+    database: fleet_tracking
+    user: fleet_user
+    secureJsonData:
+      password: fleet_pass
+    jsonData:
+      database: fleet_tracking
+      sslmode: disable
+      maxOpenConns: 100
+      maxIdleConns: 100
+      maxIdleConnsAuto: true
+      connMaxLifetime: 14400
+      postgresVersion: 1600
+      timescaledb: true
+    isDefault: true
+    editable: true
